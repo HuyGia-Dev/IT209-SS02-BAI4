@@ -1,0 +1,56 @@
+<FILENAME>README.md</FILENAME>
+<CODE>
+# Báo cáo Bài 4: Cấu hình tường lửa bảo vệ máy chủ (UFW & Cloud Firewall Integration)
+
+## 1. Mục tiêu
+Thiết lập hệ thống tường lửa 2 lớp để bảo vệ Droplet:
+- **Lớp 1 (Tường lửa OS - UFW):** Lọc lưu lượng truy cập trực tiếp trên HĐH Ubuntu.
+- **Lớp 2 (Tường lửa Hạ tầng - DigitalOcean Cloud Firewall):** Ngăn chặn lưu lượng không hợp lệ từ biên mạng trước khi đến máy chủ.
+
+---
+
+## 2. Các bước thực hiện
+
+### Lớp 1: Cấu hình UFW trên Ubuntu (OS Level)
+
+Thực thi các lệnh sau trên Droplet với quyền quản trị:
+
+```bash
+# 1. Đặt chính sách mặc định: Chặn tất cả inbound, Cho phép tất cả outbound
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+
+# 2. Mở cổng 22/tcp (SSH) và 80/tcp (HTTP)
+sudo ufw allow 22/tcp
+sudo ufw allow 80/tcp
+
+# 3. Kích hoạt UFW
+sudo ufw enable
+```
+
+#### Kết quả lệnh kiểm tra `sudo ufw status verbose`:
+```text
+Status: active
+Logging: on (low)
+Default: deny (incoming), allow (outgoing), disabled (routed)
+New profiles: skip
+
+To                         Action      From
+--                         ------      ----
+22/tcp                     ALLOW IN    Anywhere                  
+80/tcp                     ALLOW IN    Anywhere                  
+22/tcp (v6)                ALLOW IN    Anywhere (v6)             
+80/tcp (v6)                ALLOW IN    Anywhere (v6)             
+```
+
+---
+
+### Lớp 2: Cấu hình DigitalOcean Cloud Firewall (Infrastructure Level)
+
+1. Truy cập vào **DigitalOcean Console** > **Networking** > **Firewalls**.
+2. Chọn **Create Firewall** và đặt tên cho firewall (Ví dụ: `fw-protect-droplet`).
+3. Cấu hình **Inbound Rules**:
+   - **SSH**: Type: `SSH`, Protocol: `TCP`, Port: `22`, Sources: `All IPv4`, `All IPv6`.
+   - **HTTP**: Type: `HTTP`, Protocol: `TCP`, Port: `80`, Sources: `All IPv4`, `All IPv6`.
+4. Cấu hình **Outbound Rules**: Mặc định cho phép tất cả các cổng (All IPv4, All IPv6).
+5. Gán Droplet cần bảo vệ vào mục **Apply
